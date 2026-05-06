@@ -1,86 +1,133 @@
 package slice
 
 import (
-	"fmt"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
-func intEqual(a, b int) bool { return a == b }
+func TestFilterDelete(t *testing.T) {
 
-func TestDeleteIndex(t *testing.T) {
-	tests := []struct {
-		name    string
-		src     []int
-		index   int
-		want    []int
-		wantErr bool
+	testCases := []struct {
+		name            string
+		src             []int
+		deleteCondition func(idx int) bool
+
+		wantRes []int
 	}{
-		{name: "删除头部元素", src: []int{1, 2, 3}, index: 0, want: []int{2, 3}},
-		{name: "删除中间元素", src: []int{1, 2, 3}, index: 1, want: []int{1, 3}},
-		{name: "删除尾部元素", src: []int{1, 2, 3}, index: 2, want: []int{1, 2}},
-		{name: "index为负数", src: []int{1, 2, 3}, index: -1, wantErr: true},
-		{name: "index越界", src: []int{1, 2, 3}, index: 3, wantErr: true},
-		{name: "index远越界", src: []int{1, 2, 3}, index: 99, wantErr: true},
-	}
+		{
+			name: "空切片",
+			src:  []int{},
+			deleteCondition: func(idx int) bool {
+				return false
+			},
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := DeleteIndex(tt.src, tt.index)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("DeleteIndex() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if err == nil && fmt.Sprint(got) != fmt.Sprint(tt.want) {
-				t.Errorf("DeleteIndex() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
+			wantRes: []int{},
+		},
+		{
+			name: "不删除元素",
+			src:  []int{0, 1, 2, 3, 4, 5, 6, 7},
+			deleteCondition: func(idx int) bool {
+				return false
+			},
 
-func TestDeleteElement(t *testing.T) {
-	tests := []struct {
-		name    string
-		src     []int
-		element int
-		want    []int
-	}{
-		{name: "删除存在的单个元素", src: []int{1, 2, 3}, element: 2, want: []int{1, 3}},
-		{name: "删除所有重复元素", src: []int{1, 2, 2, 3, 2}, element: 2, want: []int{1, 3}},
-		{name: "删除不存在的元素", src: []int{1, 2, 3}, element: 9, want: []int{1, 2, 3}},
-		{name: "删除头部元素", src: []int{1, 2, 3}, element: 1, want: []int{2, 3}},
-		{name: "删除尾部元素", src: []int{1, 2, 3}, element: 3, want: []int{1, 2}},
-	}
+			wantRes: []int{0, 1, 2, 3, 4, 5, 6, 7},
+		},
+		{
+			name: "删除首位元素",
+			src:  []int{0, 1, 2, 3, 4, 5, 6},
+			deleteCondition: func(idx int) bool {
+				return idx == 0
+			},
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := DeleteElement(tt.src, tt.element, intEqual)
-			if fmt.Sprint(got) != fmt.Sprint(tt.want) {
-				t.Errorf("DeleteElement() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
+			wantRes: []int{1, 2, 3, 4, 5, 6},
+		},
+		{
+			name: "删除前面两个元素",
+			src:  []int{0, 1, 2, 3, 4, 5, 6, 7},
+			deleteCondition: func(idx int) bool {
+				return idx == 0 || idx == 1
+			},
 
-func TestDeleteFirstElement(t *testing.T) {
-	tests := []struct {
-		name    string
-		src     []int
-		element int
-		want    []int
-	}{
-		{name: "删除第一个匹配元素", src: []int{1, 2, 3, 2}, element: 2, want: []int{1, 3, 2}},
-		{name: "只有一个匹配", src: []int{1, 2, 3}, element: 2, want: []int{1, 3}},
-		{name: "不存在的元素", src: []int{1, 2, 3}, element: 9, want: []int{1, 2, 3}},
-		{name: "删除头部元素", src: []int{1, 2, 3}, element: 1, want: []int{2, 3}},
-		{name: "删除尾部元素", src: []int{1, 2, 3}, element: 3, want: []int{1, 2}},
-	}
+			wantRes: []int{2, 3, 4, 5, 6, 7},
+		},
+		{
+			name: "删除中间单个元素",
+			src:  []int{0, 1, 2, 3, 4, 5, 6, 7},
+			deleteCondition: func(idx int) bool {
+				return idx == 3
+			},
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := DeleteFirstElement(tt.src, tt.element, intEqual)
-			if fmt.Sprint(got) != fmt.Sprint(tt.want) {
-				t.Errorf("DeleteFirstElement() = %v, want %v", got, tt.want)
-			}
+			wantRes: []int{0, 1, 2, 4, 5, 6, 7},
+		},
+		{
+			name: "删除中间多个不连续元素",
+			src:  []int{0, 1, 2, 3, 4, 5, 6, 7},
+			deleteCondition: func(idx int) bool {
+				return idx == 2 || idx == 4
+			},
+
+			wantRes: []int{0, 1, 3, 5, 6, 7},
+		},
+		{
+			name: "删除中间多个连续元素",
+			src:  []int{0, 1, 2, 3, 4, 5, 6, 7},
+			deleteCondition: func(idx int) bool {
+				return idx == 3 || idx == 4
+			},
+
+			wantRes: []int{0, 1, 2, 5, 6, 7},
+		},
+		{
+			name: "删除中间多个元素，第一部分为一个元素，第二部分为连续元素",
+			src:  []int{0, 1, 2, 3, 4, 5, 6, 7},
+			deleteCondition: func(idx int) bool {
+				return idx == 2 || idx == 4 || idx == 5
+			},
+
+			wantRes: []int{0, 1, 3, 6, 7},
+		},
+		{
+			name: "删除中间多个元素，第一部分为连续元素，第二部分为一个元素",
+			src:  []int{0, 1, 2, 3, 4, 5, 6, 7},
+			deleteCondition: func(idx int) bool {
+				return idx == 2 || idx == 3 || idx == 5
+			},
+
+			wantRes: []int{0, 1, 4, 6, 7},
+		},
+		{
+			name: "删除后面两个元素",
+			src:  []int{0, 1, 2, 3, 4, 5, 6, 7},
+			deleteCondition: func(idx int) bool {
+				return idx == 6 || idx == 7
+			},
+
+			wantRes: []int{0, 1, 2, 3, 4, 5},
+		},
+		{
+			name: "删除末尾元素",
+			src:  []int{0, 1, 2, 3, 4, 5, 6, 7},
+			deleteCondition: func(idx int) bool {
+				return idx == 7
+			},
+
+			wantRes: []int{0, 1, 2, 3, 4, 5, 6},
+		},
+		{
+			name: "删除所有元素",
+			src:  []int{0, 1, 2, 3, 4, 5, 6, 7},
+			deleteCondition: func(idx int) bool {
+				return true
+			},
+
+			wantRes: []int{},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			res := FilterDelete(tc.src, tc.deleteCondition)
+			assert.Equal(t, tc.wantRes, res)
 		})
 	}
 }

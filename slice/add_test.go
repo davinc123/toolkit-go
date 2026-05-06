@@ -25,7 +25,7 @@ func TestAdd(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := Add(tt.src, tt.element, tt.index)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("Add() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("Add() errs = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if err == nil && fmt.Sprint(got) != fmt.Sprint(tt.want) {

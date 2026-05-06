@@ -1,36 +1,23 @@
 package slice
 
-import "errors"
+import "github.com/davinc123/toolkit-go/internal/slice"
 
-// DeleteIndex 删除 index 的元素
-func DeleteIndex[Src any](src []Src, index int) ([]Src, error) {
-	if index < 0 || index >= len(src) {
-		return src, errors.New("index out of range")
-	}
-
-	return append(src[:index], src[index+1:]...), nil
+// Delete 删除 index 处的元素
+func Delete[Src any](src []Src, index int) ([]Src, error) {
+	res, _, err := slice.Delete[Src](src, index)
+	return res, err
 }
 
-// DeleteElement 删除 所有element 元素
-func DeleteElement[Src any](src []Src, element Src, equal func(a, b Src) bool) []Src {
-	newSrc := make([]Src, 0, len(src)-1)
-	for _, v := range src {
-		if !equal(v, element) {
-			newSrc = append(newSrc, v)
+// FilterDelete 删除符合条件的元素
+func FilterDelete[T any](src []T, filter func(index int) bool) []T {
+	emptyPos := 0
+	for idx := range src {
+		if filter(idx) {
+			continue
 		}
-	}
-	return newSrc
-}
-
-// DeleteFirstElement 删除 第一个 element 元素
-func DeleteFirstElement[Src any](src []Src, element Src, equal func(a, b Src) bool) []Src {
-	newSrc := src[0:]
-	for index, v := range src {
-		if equal(v, element) {
-			newSrc = append(src[:index], src[index+1:]...)
-			break
-		}
+		src[emptyPos] = src[idx]
+		emptyPos++
 	}
 
-	return newSrc
+	return src[:emptyPos]
 }
